@@ -10734,7 +10734,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
 
         static void NodeTable(ImGuiTable* table)
         {
-            char buf[256];
+            char buf[512];
             char* p = buf;
             const char* buf_end = buf + IM_ARRAYSIZE(buf);
             const bool is_active = (table->LastFrameActive >= ImGui::GetFrameCount() - 2);
@@ -10749,21 +10749,22 @@ void ImGui::ShowMetricsWindow(bool* p_open)
                 ImGui::BulletText("OuterRect: Pos: (%.1f,%.1f) Size: (%.1f,%.1f)", table->OuterRect.Min.x, table->OuterRect.Min.y, table->OuterRect.GetWidth(), table->OuterRect.GetHeight());
                 ImGui::BulletText("InnerWidth: %.1f%s", table->InnerWidth, table->InnerWidth == 0.0f ? " (auto)" : "");
                 ImGui::BulletText("ColumnsWidth: %.1f, AutoFitWidth: %.1f", table->ColumnsTotalWidth, table->ColumnsAutoFitWidth);
+                ImGui::BulletText("CellPaddingX: %.1f, CellSpacingX: %.1f/%.1f, OuterPaddingX: %.1f", table->CellPaddingX, table->CellSpacingX1, table->CellSpacingX2, table->OuterPaddingX);
                 ImGui::BulletText("HoveredColumnBody: %d, HoveredColumnBorder: %d", table->HoveredColumnBody, table->HoveredColumnBorder);
                 ImGui::BulletText("ResizedColumn: %d, ReorderColumn: %d, HeldHeaderColumn: %d", table->ResizedColumn, table->ReorderColumn, table->HeldHeaderColumn);
                 for (int n = 0; n < table->ColumnsCount; n++)
                 {
                     const ImGuiTableColumn* column = &table->Columns[n];
                     const char* name = TableGetColumnName(table, n);
-                    ImGui::BulletText("Column %d order %d name '%s': +%.1f to +%.1f\n"
+                    ImFormatString(buf, IM_ARRAYSIZE(buf), "Column %d order %d name '%s': +%.1f to +%.1f\n"
                         "Visible: %d, Clipped: %d, DrawChannels: %d,%d\n"
-                        "WidthGiven/Request: %.2f/%.2f, WidthWeight: %.3f\n"
+                        "WidthGiven: %.2f, Request/Auto: %.2f/%.2f, StretchWeight: %.3f\n"
                         "ContentWidth: Frozen %d, Unfrozen %d, HeadersUsed/Ideal %d/%d\n"
                         "SortOrder: %d, SortDir: %s\n"
                         "UserID: 0x%08X, Flags: 0x%04X: %s%s%s%s..",
                         n, column->DisplayOrder, name, column->MinX - table->WorkRect.Min.x, column->MaxX - table->WorkRect.Min.x,
                         column->IsVisible, column->IsClipped, column->DrawChannelFrozen, column->DrawChannelUnfrozen,
-                        column->WidthGiven, column->WidthRequest, column->WidthStretchWeight,
+                        column->WidthGiven, column->WidthRequest, column->WidthAuto, column->StretchWeight,
                         column->ContentWidthFrozen, column->ContentWidthUnfrozen, column->ContentWidthHeadersUsed, column->ContentWidthHeadersIdeal,
                         column->SortOrder, (column->SortDirection == ImGuiSortDirection_Ascending) ? "Ascending" : (column->SortDirection == ImGuiSortDirection_Descending) ? "Descending" : "None",
                         column->UserID, column->Flags,
@@ -10771,6 +10772,13 @@ void ImGui::ShowMetricsWindow(bool* p_open)
                         (column->Flags & ImGuiTableColumnFlags_WidthStretch) ? "WidthStretch " : "",
                         (column->Flags & ImGuiTableColumnFlags_WidthAlwaysAutoResize) ? "WidthAlwaysAutoResize " : "",
                         (column->Flags & ImGuiTableColumnFlags_NoResize) ? "NoResize " : "");
+                    ImGui::Bullet();
+                    ImGui::Selectable(buf);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImRect r(column->MinX, table->OuterRect.Min.y, column->MaxX, table->OuterRect.Max.y);
+                        ImGui::GetForegroundDrawList()->AddRect(r.Min, r.Max, IM_COL32(255, 255, 0, 255));
+                    }
                 }
                 if (ImGuiTableSettings* settings = TableGetBoundSettings(table))
                     NodeTableSettings(settings);
