@@ -10405,8 +10405,8 @@ void ImGui::ShowMetricsWindow(bool* p_open)
     // Debugging enums
     enum { WRT_OuterRect, WRT_OuterRectClipped, WRT_InnerRect, WRT_InnerClipRect, WRT_WorkRect, WRT_Content, WRT_ContentRegionRect, WRT_Count }; // Windows Rect Type
     const char* wrt_rects_names[WRT_Count] = { "OuterRect", "OuterRectClipped", "InnerRect", "InnerClipRect", "WorkRect", "Content", "ContentRegionRect" };
-    enum { TRT_OuterRect, TRT_WorkRect, TRT_HostClipRect, TRT_InnerClipRect, TRT_BackgroundClipRect, TRT_ColumnsRect, TRT_ColumnsClipRect, TRT_ColumnsContentHeadersUsed, TRT_ColumnsContentHeadersIdeal, TRT_ColumnsContentRowsFrozen, TRT_ColumnsContentRowsUnfrozen, TRT_Count }; // Tables Rect Type
-    const char* trt_rects_names[TRT_Count] = { "OuterRect", "WorkRect", "HostClipRect", "InnerClipRect", "BackgroundClipRect", "ColumnsRect", "ColumnsClipRect", "ColumnsContentHeadersUsed", "ColumnsContentHeadersIdeal", "ColumnsContentRowsFrozen", "ColumnsContentRowsUnfrozen" };
+    enum { TRT_OuterRect, TRT_WorkRect, TRT_HostClipRect, TRT_InnerClipRect, TRT_BackgroundClipRect, TRT_ColumnsRect, TRT_ColumnsClipRect, TRT_ColumnsContentHeadersUsed, TRT_ColumnsContentHeadersIdeal, TRT_ColumnsContentFrozen, TRT_ColumnsContentUnfrozen, TRT_Count }; // Tables Rect Type
+    const char* trt_rects_names[TRT_Count] = { "OuterRect", "WorkRect", "HostClipRect", "InnerClipRect", "BackgroundClipRect", "ColumnsRect", "ColumnsClipRect", "ColumnsContentHeadersUsed", "ColumnsContentHeadersIdeal", "ColumnsContentFrozen", "ColumnsContentUnfrozen" };
 
     // State
     static bool show_windows_rects = false;
@@ -10438,17 +10438,17 @@ void ImGui::ShowMetricsWindow(bool* p_open)
     {
         static ImRect GetTableRect(ImGuiTable* table, int rect_type, int n)
         {
-            if (rect_type == TRT_OuterRect)                 { return table->OuterRect; }
-            else if (rect_type == TRT_WorkRect)             { return table->WorkRect; }
-            else if (rect_type == TRT_HostClipRect)         { return table->HostClipRect; }
-            else if (rect_type == TRT_InnerClipRect)        { return table->InnerClipRect; }
-            else if (rect_type == TRT_BackgroundClipRect)   { return table->BackgroundClipRect; }
-            else if (rect_type == TRT_ColumnsRect)                  { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MaxX, table->InnerClipRect.Min.y + table->LastOuterHeight); }
-            else if (rect_type == TRT_ColumnsClipRect)              { ImGuiTableColumn* c = &table->Columns[n]; return c->ClipRect; }
-            else if (rect_type == TRT_ColumnsContentHeadersUsed)    { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthHeadersUsed, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }    // Note: y1/y2 not always accurate
-            else if (rect_type == TRT_ColumnsContentHeadersIdeal)   { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthHeadersIdeal, table->InnerClipRect.Min.y + table->LastFirstRowHeight); } // "
-            else if (rect_type == TRT_ColumnsContentRowsFrozen)     { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthRowsFrozen, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }     // "
-            else if (rect_type == TRT_ColumnsContentRowsUnfrozen)   { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y + table->LastFirstRowHeight, c->MinX + c->ContentWidthRowsUnfrozen, table->InnerClipRect.Max.y); }   // "
+            if (rect_type == TRT_OuterRect)                     { return table->OuterRect; }
+            else if (rect_type == TRT_WorkRect)                 { return table->WorkRect; }
+            else if (rect_type == TRT_HostClipRect)             { return table->HostClipRect; }
+            else if (rect_type == TRT_InnerClipRect)            { return table->InnerClipRect; }
+            else if (rect_type == TRT_BackgroundClipRect)       { return table->BackgroundClipRect; }
+            else if (rect_type == TRT_ColumnsRect)              { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MaxX, table->InnerClipRect.Min.y + table->LastOuterHeight); }
+            else if (rect_type == TRT_ColumnsClipRect)          { ImGuiTableColumn* c = &table->Columns[n]; return c->ClipRect; }
+            else if (rect_type == TRT_ColumnsContentHeadersUsed){ ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthHeadersUsed, table->InnerClipRect.Min.y + table->LastFirstRowHeight); } // Note: y1/y2 not always accurate
+            else if (rect_type == TRT_ColumnsContentHeadersIdeal){ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthHeadersIdeal, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }
+            else if (rect_type == TRT_ColumnsContentFrozen)     { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthFrozen, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }
+            else if (rect_type == TRT_ColumnsContentUnfrozen)   { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y + table->LastFirstRowHeight, c->MinX + c->ContentWidthUnfrozen, table->InnerClipRect.Max.y); }
             IM_ASSERT(0);
             return ImRect();
         }
@@ -10758,13 +10758,13 @@ void ImGui::ShowMetricsWindow(bool* p_open)
                     ImGui::BulletText("Column %d order %d name '%s': +%.1f to +%.1f\n"
                         "Visible: %d, Clipped: %d, DrawChannels: %d,%d\n"
                         "WidthGiven/Request: %.2f/%.2f, WidthWeight: %.3f\n"
-                        "ContentWidth: RowsFrozen %d, RowsUnfrozen %d, HeadersUsed/Ideal %d/%d\n"
+                        "ContentWidth: Frozen %d, Unfrozen %d, HeadersUsed/Ideal %d/%d\n"
                         "SortOrder: %d, SortDir: %s\n"
                         "UserID: 0x%08X, Flags: 0x%04X: %s%s%s%s..",
                         n, column->DisplayOrder, name ? name : "NULL", column->MinX - table->WorkRect.Min.x, column->MaxX - table->WorkRect.Min.x,
-                        column->IsVisible, column->IsClipped, column->DrawChannelRowsBeforeFreeze, column->DrawChannelRowsAfterFreeze,
+                        column->IsVisible, column->IsClipped, column->DrawChannelFrozen, column->DrawChannelUnfrozen,
                         column->WidthGiven, column->WidthRequest, column->WidthStretchWeight,
-                        column->ContentWidthRowsFrozen, column->ContentWidthRowsUnfrozen, column->ContentWidthHeadersUsed, column->ContentWidthHeadersIdeal,
+                        column->ContentWidthFrozen, column->ContentWidthUnfrozen, column->ContentWidthHeadersUsed, column->ContentWidthHeadersIdeal,
                         column->SortOrder, (column->SortDirection == ImGuiSortDirection_Ascending) ? "Ascending" : (column->SortDirection == ImGuiSortDirection_Descending) ? "Descending" : "None",
                         column->UserID, column->Flags,
                         (column->Flags & ImGuiTableColumnFlags_WidthFixed) ? "WidthFixed " : "",
