@@ -10445,10 +10445,10 @@ void ImGui::ShowMetricsWindow(bool* p_open)
             else if (rect_type == TRT_BackgroundClipRect)       { return table->BackgroundClipRect; }
             else if (rect_type == TRT_ColumnsRect)              { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MaxX, table->InnerClipRect.Min.y + table->LastOuterHeight); }
             else if (rect_type == TRT_ColumnsClipRect)          { ImGuiTableColumn* c = &table->Columns[n]; return c->ClipRect; }
-            else if (rect_type == TRT_ColumnsContentHeadersUsed){ ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthHeadersUsed, table->InnerClipRect.Min.y + table->LastFirstRowHeight); } // Note: y1/y2 not always accurate
-            else if (rect_type == TRT_ColumnsContentHeadersIdeal){ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthHeadersIdeal, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }
-            else if (rect_type == TRT_ColumnsContentFrozen)     { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y, c->MinX + c->ContentWidthFrozen, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }
-            else if (rect_type == TRT_ColumnsContentUnfrozen)   { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->MinX, table->InnerClipRect.Min.y + table->LastFirstRowHeight, c->MinX + c->ContentWidthUnfrozen, table->InnerClipRect.Max.y); }
+            else if (rect_type == TRT_ColumnsContentHeadersUsed){ ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->ContentMinX, table->InnerClipRect.Min.y, c->ContentMaxXHeadersUsed, table->InnerClipRect.Min.y + table->LastFirstRowHeight); } // Note: y1/y2 not always accurate
+            else if (rect_type == TRT_ColumnsContentHeadersIdeal){ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->ContentMinX, table->InnerClipRect.Min.y, c->ContentMaxXHeadersIdeal, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }
+            else if (rect_type == TRT_ColumnsContentFrozen)     { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->ContentMinX, table->InnerClipRect.Min.y, c->ContentMaxXFrozen, table->InnerClipRect.Min.y + table->LastFirstRowHeight); }
+            else if (rect_type == TRT_ColumnsContentUnfrozen)   { ImGuiTableColumn* c = &table->Columns[n]; return ImRect(c->ContentMinX, table->InnerClipRect.Min.y + table->LastFirstRowHeight, c->ContentMaxXUnfrozen, table->InnerClipRect.Max.y); }
             IM_ASSERT(0);
             return ImRect();
         }
@@ -10759,13 +10759,13 @@ void ImGui::ShowMetricsWindow(bool* p_open)
                     ImFormatString(buf, IM_ARRAYSIZE(buf), "Column %d order %d name '%s': +%.1f to +%.1f\n"
                         "Visible: %d, Clipped: %d, DrawChannels: %d,%d\n"
                         "WidthGiven: %.2f, Request/Auto: %.2f/%.2f, StretchWeight: %.3f\n"
-                        "ContentWidth: Frozen %d, Unfrozen %d, HeadersUsed/Ideal %d/%d\n"
+                        "ContentWidth: Frozen %.2f, Unfrozen %.2f, HeadersUsed/Ideal %.2f/%.2f\n"
                         "SortOrder: %d, SortDir: %s\n"
                         "UserID: 0x%08X, Flags: 0x%04X: %s%s%s%s..",
                         n, column->DisplayOrder, name, column->MinX - table->WorkRect.Min.x, column->MaxX - table->WorkRect.Min.x,
                         column->IsVisible, column->IsClipped, column->DrawChannelFrozen, column->DrawChannelUnfrozen,
                         column->WidthGiven, column->WidthRequest, column->WidthAuto, column->StretchWeight,
-                        column->ContentWidthFrozen, column->ContentWidthUnfrozen, column->ContentWidthHeadersUsed, column->ContentWidthHeadersIdeal,
+                        column->ContentMaxXFrozen - column->ContentMinX, column->ContentMaxXUnfrozen - column->ContentMinX, column->ContentMaxXHeadersUsed - column->ContentMinX, column->ContentMaxXHeadersIdeal - column->ContentMinX,
                         column->SortOrder, (column->SortDirection == ImGuiSortDirection_Ascending) ? "Ascending" : (column->SortDirection == ImGuiSortDirection_Descending) ? "Descending" : "None",
                         column->UserID, column->Flags,
                         (column->Flags & ImGuiTableColumnFlags_WidthFixed) ? "WidthFixed " : "",
