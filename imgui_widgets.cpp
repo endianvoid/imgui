@@ -8728,64 +8728,6 @@ void ImGui::TableBeginUpdateColumns(ImGuiTable* table)
         table->InnerWindow->SkipItems = false;
 }
 
-void ImGui::TableSetupScrollFreeze(int columns, int rows)
-{
-    ImGuiContext& g = *GImGui;
-    ImGuiTable* table = g.CurrentTable;
-    IM_ASSERT(table != NULL && "Need to call TableSetupColumn() after BeginTable()!");
-    IM_ASSERT(table->IsLayoutLocked == false && "Need to call TableSetupColumn() before first row!");
-    IM_ASSERT(columns >= 0 && columns < IMGUI_TABLE_MAX_COLUMNS);
-    IM_ASSERT(rows >= 0 && rows < 128); // Arbitrary limit
-
-    table->FreezeColumnsRequest = (table->Flags & ImGuiTableFlags_ScrollX) ? (ImS8)columns : 0;
-    table->FreezeColumnsCount = (table->InnerWindow->Scroll.x != 0.0f) ? table->FreezeColumnsRequest : 0;
-    table->FreezeRowsRequest = (table->Flags & ImGuiTableFlags_ScrollY) ? (ImS8)rows : 0;
-    table->FreezeRowsCount = (table->InnerWindow->Scroll.y != 0.0f) ? table->FreezeRowsRequest : 0;
-    table->IsFreezeRowsPassed = (table->FreezeRowsCount == 0); // Make sure this is set before TableUpdateLayout() so ImGuiListClipper can benefit from it.b
-}
-
-void ImGui::TableUpdateDrawChannels(ImGuiTable* table)
-{
-    // Allocate draw channels.
-    // - We allocate them following storage order instead of display order so reordering columns won't needlessly
-    //   increase overall dormant memory cost.
-    // - We isolate headers draw commands in their own channels instead of just altering clip rects.
-    //   This is in order to facilitate merging of draw commands.
-    // - After crossing FreezeRowsCount, all columns see their current draw channel changed to a second set of channels.
-    // - We only use the dummy draw channel so we can push a null clipping rectangle into it without affecting other
-    //   channels, while simplifying per-row/per-cell overhead. It will be empty and discarded when merged.
-    // Draw channel allocation (before merging):
-    // - NoClip                       --> 1+1 channels: background + foreground (same clip rect == 1 draw call)
-    // - Clip                         --> 1+N channels
-    // - FreezeRows || FreezeColumns  --> 1+N*2 (unless scrolling value is zero)
-    // - FreezeRows && FreezeColunns  --> 2+N*2 (unless scrolling value is zero)
-    const int freeze_row_multiplier = (table->FreezeRowsCount > 0) ? 2 : 1;
-    const int channels_for_row = (table->Flags & ImGuiTableFlags_NoClip) ? 1 : table->ColumnsVisibleCount;
-    const int channels_for_background = 1;
-    const int channels_for_dummy = (table->ColumnsVisibleCount < table->ColumnsCount || table->VisibleUnclippedMaskByIndex != table->VisibleMaskByIndex) ? +1 : 0;
-    const int channels_total = channels_for_background + (channels_for_row * freeze_row_multiplier) + channels_for_dummy;
-    table->DrawSplitter.Split(table->InnerWindow->DrawList, channels_total);
-    table->DummyDrawChannel = channels_for_dummy ? (ImS8)(channels_total - 1) : -1;
-
-    int draw_channel_current = 1;
-    for (int column_n = 0; column_n < table->ColumnsCount; column_n++)
-    {
-        ImGuiTableColumn* column = &table->Columns[column_n];
-        if (!column->IsClipped)
-        {
-            column->DrawChannelFrozen = (ImS8)(draw_channel_current);
-            column->DrawChannelUnfrozen = (ImS8)(draw_channel_current + (table->FreezeRowsCount > 0 ? channels_for_row : 0));
-            if (!(table->Flags & ImGuiTableFlags_NoClip))
-                draw_channel_current++;
-        }
-        else
-        {
-            column->DrawChannelFrozen = column->DrawChannelUnfrozen = table->DummyDrawChannel;
-        }
-        column->DrawChannelCurrent = column->DrawChannelFrozen;
-    }
-}
-
 // Adjust flags: default width mode + stretch columns are not allowed when auto extending
 static ImGuiTableColumnFlags TableFixColumnFlags(ImGuiTable* table, ImGuiTableColumnFlags flags)
 {
@@ -9593,7 +9535,49 @@ void ImGui::TableSetColumnWidth(ImGuiTable* table, ImGuiTableColumn* column_0, f
     }
 }
 
-// This function reorder draw channels based on matching clip rectangle, to facilitate merging them.
+// Allocate draw channels. Called by TableUpdateLayout()
+// - We allocate them following storage order instead of display order so reordering columns won't needlessly
+//   increase overall dormant memory cost.
+// - We isolate headers draw commands in their own channels instead of just altering clip rects.
+//   This is in order to facilitate merging of draw commands.
+// - After crossing FreezeRowsCount, all columns see their current draw channel changed to a second set of channels.
+// - We only use the dummy draw channel so we can push a null clipping rectangle into it without affecting other
+//   channels, while simplifying per-row/per-cell overhead. It will be empty and discarded when merged.
+// Draw channel allocation (before merging):
+// - NoClip                       --> 1+1 channels: background + foreground (same clip rect == 1 draw call)
+// - Clip                         --> 1+N channels
+// - FreezeRows || FreezeColumns  --> 1+N*2 (unless scrolling value is zero)
+// - FreezeRows && FreezeColunns  --> 2+N*2 (unless scrolling value is zero)
+void ImGui::TableUpdateDrawChannels(ImGuiTable* table)
+{
+    const int freeze_row_multiplier = (table->FreezeRowsCount > 0) ? 2 : 1;
+    const int channels_for_row = (table->Flags & ImGuiTableFlags_NoClip) ? 1 : table->ColumnsVisibleCount;
+    const int channels_for_background = 1;
+    const int channels_for_dummy = (table->ColumnsVisibleCount < table->ColumnsCount || table->VisibleUnclippedMaskByIndex != table->VisibleMaskByIndex) ? +1 : 0;
+    const int channels_total = channels_for_background + (channels_for_row * freeze_row_multiplier) + channels_for_dummy;
+    table->DrawSplitter.Split(table->InnerWindow->DrawList, channels_total);
+    table->DummyDrawChannel = channels_for_dummy ? (ImS8)(channels_total - 1) : -1;
+
+    int draw_channel_current = 1;
+    for (int column_n = 0; column_n < table->ColumnsCount; column_n++)
+    {
+        ImGuiTableColumn* column = &table->Columns[column_n];
+        if (!column->IsClipped)
+        {
+            column->DrawChannelFrozen = (ImS8)(draw_channel_current);
+            column->DrawChannelUnfrozen = (ImS8)(draw_channel_current + (table->FreezeRowsCount > 0 ? channels_for_row : 0));
+            if (!(table->Flags & ImGuiTableFlags_NoClip))
+                draw_channel_current++;
+        }
+        else
+        {
+            column->DrawChannelFrozen = column->DrawChannelUnfrozen = table->DummyDrawChannel;
+        }
+        column->DrawChannelCurrent = column->DrawChannelFrozen;
+    }
+}
+
+// This function reorder draw channels based on matching clip rectangle, to facilitate merging them. Called by EndTable().
 //
 // Columns where the contents didn't stray off their local clip rectangle can be merged. To achieve
 // this we merge their clip rect and make them contiguous in the channel list, so they can be merged
@@ -9847,6 +9831,22 @@ void    ImGui::TableSetupColumn(const char* label, ImGuiTableColumnFlags flags, 
         column->NameOffset = (ImS16)table->ColumnsNames.size();
         table->ColumnsNames.append(label, label + strlen(label) + 1);
     }
+}
+
+void ImGui::TableSetupScrollFreeze(int columns, int rows)
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiTable* table = g.CurrentTable;
+    IM_ASSERT(table != NULL && "Need to call TableSetupColumn() after BeginTable()!");
+    IM_ASSERT(table->IsLayoutLocked == false && "Need to call TableSetupColumn() before first row!");
+    IM_ASSERT(columns >= 0 && columns < IMGUI_TABLE_MAX_COLUMNS);
+    IM_ASSERT(rows >= 0 && rows < 128); // Arbitrary limit
+
+    table->FreezeColumnsRequest = (table->Flags & ImGuiTableFlags_ScrollX) ? (ImS8)columns : 0;
+    table->FreezeColumnsCount = (table->InnerWindow->Scroll.x != 0.0f) ? table->FreezeColumnsRequest : 0;
+    table->FreezeRowsRequest = (table->Flags & ImGuiTableFlags_ScrollY) ? (ImS8)rows : 0;
+    table->FreezeRowsCount = (table->InnerWindow->Scroll.y != 0.0f) ? table->FreezeRowsRequest : 0;
+    table->IsFreezeRowsPassed = (table->FreezeRowsCount == 0); // Make sure this is set before TableUpdateLayout() so ImGuiListClipper can benefit from it.b
 }
 
 // Starts into the first cell of a new row
