@@ -48,11 +48,22 @@ examples/example_null/example_null
 examples/example_sdl_opengl2/example_sdl_opengl2
 examples/example_sdl_opengl3/example_sdl_opengl3
 
+**/bin/
+bin-int/
 
 .vs/
 **.sln
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user
-**/bin/
-bin-int/
+
+imgui.ini
+
+CMakeLists.txt
+CMakeCache.txt
+CmakeFiles/
+build.ninja
+.ninja_deps
+.ninja_logs
+
+**.cmake

@@ -19,6 +19,10 @@ project "ImGui"
 		"imgui_demo.cpp"
 	}
 
+    configuration "target-emscripten"
+        buildoptions("-fPIC");
+        linkoptions("-fPIC");
+	
 	filter "system:windows"
 		systemversion "latest"
 		cppdialect "C++17"
